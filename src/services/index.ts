@@ -7,3 +7,4 @@ export * from "./user_activity.service";
 export * from "./exam.service";
 export * from "./events.service";
 export * from "./news.service";
+export * from "./patient.service";

@@ -36,6 +36,7 @@ export const ServiceType = {
     Bookfair: Symbol.for("Bookfair"),
     Rag: Symbol.for("Rag"),
     Chat: Symbol.for("Chat"),
+    Patient: Symbol.for("Patient"),
 };
 
 export enum PrivacyType {

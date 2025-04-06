@@ -6,7 +6,6 @@ import http from "http";
 import { Server } from "socket.io";
 
 import cookieSession from "cookie-session";
-import passport from "passport";
 import compression from "compression";
 import { logger } from "./lib/logger";
 import * as socketio from "socket.io";

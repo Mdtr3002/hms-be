@@ -7,3 +7,4 @@ export * from "./subject.model";
 export * from "./token.model";
 export * from "./user_activity.model";
 export * from "./user.model";
+export * from "./patient.model";

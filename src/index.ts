@@ -17,6 +17,7 @@ import {
     EventService,
     UserService,
     NewsService,
+    PatientService,
 } from "./services/index";
 
 import { AdminController } from "./controllers/index";
@@ -69,6 +70,10 @@ container
 container
     .bind<NewsService>(ServiceType.News)
     .to(NewsService)
+    .inSingletonScope();
+container
+    .bind<PatientService>(ServiceType.Patient)
+    .to(PatientService)
     .inSingletonScope();
 
 // Initialize service first

@@ -9,6 +9,7 @@ import { AdminExamController } from "./exam.controller";
 import recordRoutePrefix from "../../lib/record-route-prefix";
 import { AdminEventController } from "./event.controller";
 import { AdminNewsController } from "./news.controller";
+import { AdminPatientController } from "./patient.controller";
 import { Controller } from "../controller";
 
 @injectable()
@@ -24,6 +25,7 @@ export class AdminController extends Controller {
         container.resolve<AdminExamController>(AdminExamController),
         container.resolve<AdminEventController>(AdminEventController),
         container.resolve<AdminNewsController>(AdminNewsController),
+        container.resolve<AdminPatientController>(AdminPatientController),
     ];
 
     constructor() {
