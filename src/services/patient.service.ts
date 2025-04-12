@@ -1,114 +1,167 @@
-import { injectable } from "inversify";
+import { inject, injectable } from "inversify";
 import { logger } from "../lib/logger";
-import {
-    FilterQuery,
-    PopulateOptions,
-    ProjectionType,
-    QueryOptions,
-    Types,
-    UpdateQuery,
-} from "mongoose";
-import _ from "lodash";
-import PatientModel, { PatientDocument } from "../models/patient.model";
-import { CreatePatientDto } from "../lib/dto/patient.dto";
+import { FilterQuery, Types } from "mongoose";
+import { CreatePatientDto, EditPatientDto } from "../lib/dto/patient.dto";
+import { PatientRepository } from "../repository/patient.repository";
+import { Request, Response, RepositoryType } from "../types";
+import { PatientDocument } from "../entity/patient.model";
+import { DEFAULT_PAGINATION_SIZE } from "../config";
 
 @injectable()
 export class PatientService {
-    constructor() {
+    constructor(
+        @inject(RepositoryType.Patient)
+        private patientRepository: PatientRepository
+    ) {
         logger.info(`[Event] Initializing...`);
     }
 
-    public async create(dto: CreatePatientDto) {
-        return await PatientModel.create({
-            ...dto,
-        });
+    public async create(request: Request, response: Response) {
+        try {
+            const patientInfo: CreatePatientDto = {
+                name: request.body.name,
+                phoneNumber: request.body.phoneNumber,
+                dob: request.body.dob,
+                description: request.body.description,
+                medicalRecord: request.body.medicalRecord,
+            };
+
+            const event = await this.patientRepository.create(patientInfo);
+
+            response.composer.success(event);
+        } catch (error) {
+            logger.error(error.message);
+            console.error(error);
+            response.composer.badRequest(error.message);
+        }
     }
 
-    public async editOne(
-        eventId: Types.ObjectId,
-        update: UpdateQuery<PatientDocument>,
-        options: QueryOptions<PatientDocument> = {}
-    ) {
-        return await PatientModel.findOneAndUpdate(
-            { _id: eventId, deletedAt: { $exists: false } },
-            { ...update },
-            { ...options, new: true }
-        );
+    public async editOne(request: Request, response: Response) {
+        try {
+            const patientId = new Types.ObjectId(request.params.patientId);
+            const patient = await this.patientRepository.getById(patientId);
+
+            if (!patient) {
+                throw new Error(`Patient not found`);
+            }
+
+            const info: EditPatientDto = {
+                name: request.body.name || patient.name,
+                phoneNumber: request.body.phoneNumber || patient.phoneNumber,
+                dob: request.body.dob || patient.dob,
+                description: request.body.description || patient.description,
+                medicalRecord:
+                    request.body.medicalRecord || patient.medicalRecord,
+            };
+
+            const updatedEvent = await this.patientRepository.editOne(
+                patientId,
+                info
+            );
+
+            response.composer.success(updatedEvent);
+        } catch (error) {
+            logger.error(error.message);
+            console.error(error);
+            response.composer.badRequest(error.message);
+        }
     }
 
-    public async getOne(
-        query: FilterQuery<PatientDocument>,
-        projection: ProjectionType<PatientDocument> = {},
-        options: QueryOptions<PatientDocument> = {}
-    ): Promise<PatientDocument> {
-        return await PatientModel.findOne(
-            { ...query, deletedAt: { $exists: false } },
-            projection,
-            { ...options, sort: { startedAt: -1 } }
-        );
+    public async getById(request: Request, response: Response) {
+        try {
+            const patientId = new Types.ObjectId(request.params.patientId);
+            const patient = await this.patientRepository.getById(patientId, {});
+
+            if (!patient) {
+                throw new Error(`Patient not found`);
+            }
+
+            response.composer.success(patient);
+        } catch (error) {
+            logger.error(error.message);
+            console.error(error);
+            response.composer.badRequest(error.message);
+        }
     }
 
-    public async getById(
-        id: Types.ObjectId,
-        projection: ProjectionType<PatientDocument> = {},
-        options: QueryOptions<PatientDocument> = {}
-    ): Promise<PatientDocument> {
-        return await this.getOne({ _id: id }, projection, options);
+    public async getAll(request: Request, response: Response) {
+        try {
+            const query: FilterQuery<PatientDocument> = {};
+
+            if (request.query.name) {
+                query.name = {
+                    $regex: decodeURIComponent(request.query.name as string),
+                };
+            }
+
+            const isUsePagination =
+                request.query.pagination === undefined ||
+                request.query.pagination === "true";
+
+            const pageSize: number = request.query.pageSize
+                ? parseInt(request.query.pageSize as string)
+                : DEFAULT_PAGINATION_SIZE;
+            const pageNumber: number = request.query.pageNumber
+                ? parseInt(request.query.pageNumber as string)
+                : 1;
+
+            if (isUsePagination) {
+                const [total, result] =
+                    await this.patientRepository.getPaginated(
+                        query,
+                        {
+                            __v: 0,
+                        },
+                        [],
+                        pageSize,
+                        pageNumber
+                    );
+
+                response.composer.success({
+                    total,
+                    pageCount: Math.max(Math.ceil(total / pageSize), 1),
+                    pageSize,
+                    result,
+                });
+            } else {
+                const result = await this.patientRepository.get(
+                    query,
+                    {
+                        __v: 0,
+                    },
+                    []
+                );
+
+                response.composer.success({
+                    total: result.length,
+                    result,
+                });
+            }
+        } catch (error) {
+            logger.error(error.message);
+            console.error(error);
+            response.composer.badRequest(error.message);
+        }
     }
 
-    public async get(
-        query: FilterQuery<PatientDocument>,
-        projection: ProjectionType<PatientDocument>,
-        options: QueryOptions<PatientDocument>
-    ) {
-        return await PatientModel.find(
-            { ...query, deletedAt: { $exists: false } },
-            projection,
-            { ...options, sort: { startedAt: -1 } }
-        );
-    }
+    public async deleteOne(request: Request, response: Response) {
+        try {
+            const patientId = new Types.ObjectId(request.params.patientId);
+            const patient = await this.patientRepository.getById(patientId);
 
-    public async getPaginated(
-        query: FilterQuery<PatientDocument>,
-        projection: ProjectionType<PatientDocument>,
-        populateOptions: PopulateOptions | (string | PopulateOptions)[],
-        pageSize: number,
-        pageNumber: number
-    ) {
-        return await Promise.all([
-            PatientModel.count({
-                ...query,
-                deletedAt: { $exists: false },
-            }),
-            PatientModel.find(
-                {
-                    ...query,
-                    deletedAt: { $exists: false },
-                },
-                projection,
-                { sort: { startedAt: -1 } }
-            )
-                .skip(Math.max(pageSize * (pageNumber - 1), 0))
-                .limit(pageSize)
-                .populate(populateOptions),
-        ]);
-    }
+            if (!patient) {
+                throw new Error(`Patient not found`);
+            }
 
-    public async markAsDeleted(
-        eventId: Types.ObjectId,
-        options: QueryOptions<PatientDocument> = {}
-    ) {
-        return await PatientModel.findOneAndUpdate(
-            { _id: eventId, deletedAt: { $exists: false } },
-            { deletedAt: Date.now() },
-            { ...options, new: true }
-        );
-    }
+            const deletedEvent = await this.patientRepository.deleteOne(
+                patientId
+            );
 
-    public async deleteOne(
-        eventId: Types.ObjectId,
-        options: QueryOptions<PatientDocument> = {}
-    ) {
-        return await PatientModel.findOneAndDelete({ _id: eventId }, options);
+            response.composer.success(deletedEvent);
+        } catch (error) {
+            logger.error(error.message);
+            console.error(error);
+            response.composer.badRequest(error.message);
+        }
     }
 }

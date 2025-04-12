@@ -1,140 +1,148 @@
-import { injectable } from "inversify";
+import { inject, injectable } from "inversify";
 import { logger } from "../lib/logger";
-import {
-  FilterQuery,
-  PopulateOptions,
-  ProjectionType,
-  QueryOptions,
-  Types,
-  UpdateQuery,
-} from "mongoose";
-import StaffModel, { StaffDocument } from "../models/staff.model";
-import { DoctorModel } from "../models/staff.model";
-import { NurseModel } from "../models/staff.model";
+import { FilterQuery, Types } from "mongoose";
+import { StaffRepository } from "../repository/staff.repository";
+import { Request, Response, RepositoryType } from "../types";
+import { DEFAULT_PAGINATION_SIZE } from "../config";
 import { CreateStaffDto } from "../lib/dto/staff.dto";
+import { StaffDocument } from "../entity/staff.model";
 
 @injectable()
 export class StaffService {
-  constructor() {
-    logger.info(`[Staff] Initializing...`);
-  }
-
-  public async create(dto: CreateStaffDto): Promise<StaffDocument> {
-    const schedule = {
-      scheduleStartTime: dto.scheduleStartTime,
-      scheduleEndTime: dto.scheduleEndTime,
-      workDays: dto.workDays,
-      scheduleWorkDescription: dto.scheduleWorkDescription,
-    };
-
-    if (dto.role === "Doctor") {
-      return await DoctorModel.create({
-        name: dto.name,
-        phoneNumber: dto.phoneNumber,
-        dob: dto.dob,
-        description: dto.description,
-        schedule,
-        specialization: dto.specialization,
-      });
-    } else if (dto.role === "Nurse") {
-      return await NurseModel.create({
-        name: dto.name,
-        phoneNumber: dto.phoneNumber,
-        dob: dto.dob,
-        description: dto.description,
-        schedule,
-        specialization: dto.specialization,
-      });
-    } else {
-      return await StaffModel.create({
-        name: dto.name,
-        phoneNumber: dto.phoneNumber,
-        dob: dto.dob,
-        description: dto.description,
-        schedule,
-      });
+    constructor(
+        @inject(RepositoryType.Staff) private staffRepository: StaffRepository
+    ) {
+        logger.info(`[Staff] Initializing...`);
     }
-  }
 
-  public async editOne(
-    staffId: Types.ObjectId,
-    update: UpdateQuery<StaffDocument>,
-    options: QueryOptions<StaffDocument> = {}
-  ): Promise<StaffDocument | null> {
-    return await StaffModel.findOneAndUpdate(
-      { _id: staffId, deletedAt: { $exists: false } },
-      { ...update },
-      { ...options, new: true }
-    );
-  }
+    public async create(request: Request, response: Response) {
+        try {
+            const staffInfo: CreateStaffDto = {
+                name: request.body.name,
+                phoneNumber: request.body.phoneNumber,
+                dob: request.body.dob,
+                description: request.body.description,
+                scheduleStartTime: request.body.scheduleStartTime,
+                scheduleEndTime: request.body.scheduleEndTime,
+                workDays: request.body.workDays,
+                scheduleWorkDescription: request.body.scheduleWorkDescription,
+                specialization: request.body.specialization,
+                role: request.body.role, // "Doctor" or "Nurse"
+            };
 
-  public async getOne(
-    query: FilterQuery<StaffDocument>,
-    projection: ProjectionType<StaffDocument> = {},
-    options: QueryOptions<StaffDocument> = {}
-  ): Promise<StaffDocument | null> {
-    return await StaffModel.findOne(
-      { ...query, deletedAt: { $exists: false } },
-      projection,
-      { ...options, sort: { createdAt: -1 } }
-    );
-  }
+            console.log("HERE");
+            const staff = await this.staffRepository.create(staffInfo);
+            console.log("HERE");
 
-  public async getById(
-    id: Types.ObjectId,
-    projection: ProjectionType<StaffDocument> = {},
-    options: QueryOptions<StaffDocument> = {}
-  ): Promise<StaffDocument | null> {
-    return await this.getOne({ _id: id }, projection, options);
-  }
+            response.composer.success(staff);
+        } catch (error) {
+            logger.error(error.message);
+            response.composer.badRequest(error.message);
+        }
+    }
 
-  public async get(
-    query: FilterQuery<StaffDocument>,
-    projection: ProjectionType<StaffDocument>,
-    options: QueryOptions<StaffDocument>
-  ): Promise<StaffDocument[]> {
-    return await StaffModel.find(
-      { ...query, deletedAt: { $exists: false } },
-      projection,
-      { ...options, sort: { createdAt: -1 } }
-    );
-  }
+    public async editOne(request: Request, response: Response) {
+        try {
+            const staffId = new Types.ObjectId(request.params.staffId);
+            const staff = await this.staffRepository.getById(staffId);
+            if (!staff) {
+                throw new Error("Staff not found");
+            }
 
-  public async getPaginated(
-    query: FilterQuery<StaffDocument>,
-    projection: ProjectionType<StaffDocument>,
-    populateOptions: PopulateOptions | (string | PopulateOptions)[],
-    pageSize: number,
-    pageNumber: number
-  ): Promise<[number, StaffDocument[]]> {
-    return await Promise.all([
-      StaffModel.countDocuments({ ...query, deletedAt: { $exists: false } }),
-      StaffModel.find(
-        { ...query, deletedAt: { $exists: false } },
-        projection,
-        { sort: { createdAt: -1 } }
-      )
-        .skip(Math.max(pageSize * (pageNumber - 1), 0))
-        .limit(pageSize)
-        .populate(populateOptions),
-    ]);
-  }
+            const updatePayload = { ...request.body };
 
-  public async markAsDeleted(
-    staffId: Types.ObjectId,
-    options: QueryOptions<StaffDocument> = {}
-  ): Promise<StaffDocument | null> {
-    return await StaffModel.findOneAndUpdate(
-      { _id: staffId, deletedAt: { $exists: false } },
-      { deletedAt: Date.now() },
-      { ...options, new: true }
-    );
-  }
+            const updatedStaff = await this.staffRepository.editOne(
+                staffId,
+                updatePayload
+            );
 
-  public async deleteOne(
-    staffId: Types.ObjectId,
-    options: QueryOptions<StaffDocument> = {}
-  ): Promise<StaffDocument | null> {
-    return await StaffModel.findOneAndDelete({ _id: staffId }, options);
-  }
+            response.composer.success(updatedStaff);
+        } catch (error) {
+            logger.error(error.message);
+            response.composer.badRequest(error.message);
+        }
+    }
+
+    public async getById(request: Request, response: Response) {
+        try {
+            const staffId = new Types.ObjectId(request.params.staffId);
+            const staff = await this.staffRepository.getById(staffId, {});
+            if (!staff) {
+                throw new Error("Staff not found");
+            }
+            response.composer.success(staff);
+        } catch (error) {
+            logger.error(error.message);
+            response.composer.badRequest(error.message);
+        }
+    }
+
+    public async getAll(request: Request, response: Response) {
+        try {
+            const query: FilterQuery<StaffDocument> = {};
+
+            if (request.query.name) {
+                query.name = {
+                    $regex: decodeURIComponent(request.query.name as string),
+                };
+            }
+
+            const isUsePagination =
+                request.query.pagination === undefined ||
+                request.query.pagination === "true";
+
+            const pageSize: number = request.query.pageSize
+                ? parseInt(request.query.pageSize as string)
+                : DEFAULT_PAGINATION_SIZE;
+            const pageNumber: number = request.query.pageNumber
+                ? parseInt(request.query.pageNumber as string)
+                : 1;
+
+            if (isUsePagination) {
+                const [total, result] = await this.staffRepository.getPaginated(
+                    query,
+                    { __v: 0 },
+                    [],
+                    pageSize,
+                    pageNumber
+                );
+
+                response.composer.success({
+                    total,
+                    pageCount: Math.max(Math.ceil(total / pageSize), 1),
+                    pageSize,
+                    result,
+                });
+            } else {
+                const result = await this.staffRepository.get(
+                    query,
+                    { __v: 0 },
+                    []
+                );
+
+                response.composer.success({
+                    total: result.length,
+                    result,
+                });
+            }
+        } catch (error) {
+            logger.error(error.message);
+            response.composer.badRequest(error.message);
+        }
+    }
+    public async deleteOne(request: Request, response: Response) {
+        try {
+            const staffId = new Types.ObjectId(request.params.staffId);
+            const staff = await this.staffRepository.getById(staffId);
+            if (!staff) {
+                throw new Error("Staff not found");
+            }
+
+            const deletedStaff = await this.staffRepository.deleteOne(staffId);
+            response.composer.success(deletedStaff);
+        } catch (error) {
+            logger.error(error.message);
+            response.composer.badRequest(error.message);
+        }
+    }
 }

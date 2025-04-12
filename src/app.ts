@@ -9,9 +9,8 @@ import cookieSession from "cookie-session";
 import compression from "compression";
 import { logger } from "./lib/logger";
 import * as socketio from "socket.io";
-import { setupMetrics } from "./lib/metrics/metrics";
 import recordRoutePrefix from "./lib/record-route-prefix";
-import { Controller } from "./controllers/controller";
+import { Controller } from "./apiHandler/controller";
 
 class App {
     public app: Express;
@@ -53,7 +52,6 @@ class App {
         this.app.use(bodyParser.json({ limit: "50mb" }));
         this.app.use(cors());
         this.app.use(useragent.express());
-        setupMetrics(this.app);
 
         // this.app.use(
         //     "/static",
