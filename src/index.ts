@@ -27,6 +27,7 @@ import mongoose from "mongoose";
 
 import { toNumber } from "lodash";
 import { logger } from "./lib/logger";
+import { StaffService } from "./services/staff.service";
 
 logger.info(`Connecting to database at URI: ${process.env.DB_URI}`);
 mongoose.connect(process.env.DB_URI);
@@ -74,6 +75,10 @@ container
 container
     .bind<PatientService>(ServiceType.Patient)
     .to(PatientService)
+    .inSingletonScope();
+container
+    .bind<StaffService>(ServiceType.Staff)
+    .to(StaffService)
     .inSingletonScope();
 
 // Initialize service first
