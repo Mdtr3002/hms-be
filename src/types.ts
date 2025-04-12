@@ -37,6 +37,7 @@ export const ServiceType = {
     Rag: Symbol.for("Rag"),
     Chat: Symbol.for("Chat"),
     Patient: Symbol.for("Patient"),
+    Staff: Symbol.for("Staff"),
 };
 
 export enum PrivacyType {

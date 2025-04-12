@@ -10,6 +10,7 @@ import recordRoutePrefix from "../../lib/record-route-prefix";
 import { AdminEventController } from "./event.controller";
 import { AdminNewsController } from "./news.controller";
 import { AdminPatientController } from "./patient.controller";
+import { AdminStaffController } from "./staff.controller";
 import { Controller } from "../controller";
 
 @injectable()
@@ -26,12 +27,14 @@ export class AdminController extends Controller {
         container.resolve<AdminEventController>(AdminEventController),
         container.resolve<AdminNewsController>(AdminNewsController),
         container.resolve<AdminPatientController>(AdminPatientController),
+        container.resolve<AdminStaffController>(AdminStaffController),
     ];
 
     constructor() {
         super();
 
         this.SUBROUTES.forEach((controller) => {
+            console.log(container.isBound(controller.constructor.name), controller.path);
             this.router.use(
                 controller.path,
                 recordRoutePrefix(controller.path),
