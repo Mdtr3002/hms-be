@@ -1,17 +1,15 @@
-import { inject, injectable } from "inversify";
+import { injectable } from "inversify";
 import { logger } from "../lib/logger";
 import { FilterQuery, Types } from "mongoose";
-import { StaffRepository } from "../repository/staff.repository";
-import { Request, Response, RepositoryType } from "../types";
+import StaffRepository from "../repository/staff.repository";
+import { Request, Response } from "../types";
 import { DEFAULT_PAGINATION_SIZE } from "../config";
 import { CreateStaffDto } from "../lib/dto/staff.dto";
 import { StaffDocument } from "../entity/staff.model";
 
 @injectable()
 export class StaffService {
-    constructor(
-        @inject(RepositoryType.Staff) private staffRepository: StaffRepository
-    ) {
+    constructor() {
         logger.info(`[Staff] Initializing...`);
     }
 
@@ -30,9 +28,7 @@ export class StaffService {
                 role: request.body.role, // "Doctor" or "Nurse"
             };
 
-            console.log("HERE");
-            const staff = await this.staffRepository.create(staffInfo);
-            console.log("HERE");
+            const staff = await StaffRepository.create(staffInfo);
 
             response.composer.success(staff);
         } catch (error) {
@@ -44,14 +40,14 @@ export class StaffService {
     public async editOne(request: Request, response: Response) {
         try {
             const staffId = new Types.ObjectId(request.params.staffId);
-            const staff = await this.staffRepository.getById(staffId);
+            const staff = await StaffRepository.getById(staffId);
             if (!staff) {
                 throw new Error("Staff not found");
             }
 
             const updatePayload = { ...request.body };
 
-            const updatedStaff = await this.staffRepository.editOne(
+            const updatedStaff = await StaffRepository.editOne(
                 staffId,
                 updatePayload
             );
@@ -66,7 +62,7 @@ export class StaffService {
     public async getById(request: Request, response: Response) {
         try {
             const staffId = new Types.ObjectId(request.params.staffId);
-            const staff = await this.staffRepository.getById(staffId, {});
+            const staff = await StaffRepository.getById(staffId, {});
             if (!staff) {
                 throw new Error("Staff not found");
             }
@@ -99,7 +95,7 @@ export class StaffService {
                 : 1;
 
             if (isUsePagination) {
-                const [total, result] = await this.staffRepository.getPaginated(
+                const [total, result] = await StaffRepository.getPaginated(
                     query,
                     { __v: 0 },
                     [],
@@ -114,11 +110,7 @@ export class StaffService {
                     result,
                 });
             } else {
-                const result = await this.staffRepository.get(
-                    query,
-                    { __v: 0 },
-                    []
-                );
+                const result = await StaffRepository.get(query, { __v: 0 }, []);
 
                 response.composer.success({
                     total: result.length,
@@ -133,12 +125,12 @@ export class StaffService {
     public async deleteOne(request: Request, response: Response) {
         try {
             const staffId = new Types.ObjectId(request.params.staffId);
-            const staff = await this.staffRepository.getById(staffId);
+            const staff = await StaffRepository.getById(staffId);
             if (!staff) {
                 throw new Error("Staff not found");
             }
 
-            const deletedStaff = await this.staffRepository.deleteOne(staffId);
+            const deletedStaff = await StaffRepository.deleteOne(staffId);
             response.composer.success(deletedStaff);
         } catch (error) {
             logger.error(error.message);

@@ -1,5 +1,3 @@
-import { injectable } from "inversify";
-import { logger } from "../lib/logger";
 import {
     FilterQuery,
     PopulateOptions,
@@ -11,19 +9,14 @@ import {
 import PatientModel, { PatientDocument } from "../entity/patient.model";
 import { CreatePatientDto } from "../lib/dto/patient.dto";
 
-@injectable()
-export class PatientRepository {
-    constructor() {
-        logger.info(`[Event] Initializing...`);
-    }
-
-    public async create(dto: CreatePatientDto) {
+const PatientRepository = {
+    create: async function create(dto: CreatePatientDto) {
         return await PatientModel.create({
             ...dto,
         });
-    }
+    },
 
-    public async editOne(
+    editOne: async function editOne(
         eventId: Types.ObjectId,
         update: UpdateQuery<PatientDocument>,
         options: QueryOptions<PatientDocument> = {}
@@ -33,9 +26,9 @@ export class PatientRepository {
             { ...update },
             { ...options, new: true }
         );
-    }
+    },
 
-    public async getOne(
+    getOne: async function getOne(
         query: FilterQuery<PatientDocument>,
         projection: ProjectionType<PatientDocument> = {},
         options: QueryOptions<PatientDocument> = {}
@@ -45,17 +38,17 @@ export class PatientRepository {
             projection,
             { ...options, sort: { startedAt: -1 } }
         );
-    }
+    },
 
-    public async getById(
+    getById: async function getById(
         id: Types.ObjectId,
         projection: ProjectionType<PatientDocument> = {},
         options: QueryOptions<PatientDocument> = {}
     ): Promise<PatientDocument> {
         return await this.getOne({ _id: id }, projection, options);
-    }
+    },
 
-    public async get(
+    get: async function get(
         query: FilterQuery<PatientDocument>,
         projection: ProjectionType<PatientDocument>,
         options: QueryOptions<PatientDocument>
@@ -65,9 +58,9 @@ export class PatientRepository {
             projection,
             { ...options, sort: { startedAt: -1 } }
         );
-    }
+    },
 
-    public async getPaginated(
+    getPaginated: async function getPaginated(
         query: FilterQuery<PatientDocument>,
         projection: ProjectionType<PatientDocument>,
         populateOptions: PopulateOptions | (string | PopulateOptions)[],
@@ -91,9 +84,9 @@ export class PatientRepository {
                 .limit(pageSize)
                 .populate(populateOptions),
         ]);
-    }
+    },
 
-    public async markAsDeleted(
+    markAsDeleted: async function markAsDeleted(
         eventId: Types.ObjectId,
         options: QueryOptions<PatientDocument> = {}
     ) {
@@ -102,12 +95,14 @@ export class PatientRepository {
             { deletedAt: Date.now() },
             { ...options, new: true }
         );
-    }
+    },
 
-    public async deleteOne(
+    deleteOne: async function deleteOne(
         eventId: Types.ObjectId,
         options: QueryOptions<PatientDocument> = {}
     ) {
         return await PatientModel.findOneAndDelete({ _id: eventId }, options);
-    }
-}
+    },
+};
+
+export default PatientRepository;

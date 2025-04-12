@@ -1,18 +1,15 @@
-import { inject, injectable } from "inversify";
+import { injectable } from "inversify";
 import { logger } from "../lib/logger";
 import { FilterQuery, Types } from "mongoose";
 import { CreatePatientDto, EditPatientDto } from "../lib/dto/patient.dto";
-import { PatientRepository } from "../repository/patient.repository";
-import { Request, Response, RepositoryType } from "../types";
+import PatientRepository from "../repository/patient.repository";
+import { Request, Response } from "../types";
 import { PatientDocument } from "../entity/patient.model";
 import { DEFAULT_PAGINATION_SIZE } from "../config";
 
 @injectable()
 export class PatientService {
-    constructor(
-        @inject(RepositoryType.Patient)
-        private patientRepository: PatientRepository
-    ) {
+    constructor() {
         logger.info(`[Event] Initializing...`);
     }
 
@@ -26,7 +23,7 @@ export class PatientService {
                 medicalRecord: request.body.medicalRecord,
             };
 
-            const event = await this.patientRepository.create(patientInfo);
+            const event = await PatientRepository.create(patientInfo);
 
             response.composer.success(event);
         } catch (error) {
@@ -39,7 +36,7 @@ export class PatientService {
     public async editOne(request: Request, response: Response) {
         try {
             const patientId = new Types.ObjectId(request.params.patientId);
-            const patient = await this.patientRepository.getById(patientId);
+            const patient = await PatientRepository.getById(patientId);
 
             if (!patient) {
                 throw new Error(`Patient not found`);
@@ -54,7 +51,7 @@ export class PatientService {
                     request.body.medicalRecord || patient.medicalRecord,
             };
 
-            const updatedEvent = await this.patientRepository.editOne(
+            const updatedEvent = await PatientRepository.editOne(
                 patientId,
                 info
             );
@@ -70,7 +67,7 @@ export class PatientService {
     public async getById(request: Request, response: Response) {
         try {
             const patientId = new Types.ObjectId(request.params.patientId);
-            const patient = await this.patientRepository.getById(patientId, {});
+            const patient = await PatientRepository.getById(patientId, {});
 
             if (!patient) {
                 throw new Error(`Patient not found`);
@@ -106,16 +103,15 @@ export class PatientService {
                 : 1;
 
             if (isUsePagination) {
-                const [total, result] =
-                    await this.patientRepository.getPaginated(
-                        query,
-                        {
-                            __v: 0,
-                        },
-                        [],
-                        pageSize,
-                        pageNumber
-                    );
+                const [total, result] = await PatientRepository.getPaginated(
+                    query,
+                    {
+                        __v: 0,
+                    },
+                    [],
+                    pageSize,
+                    pageNumber
+                );
 
                 response.composer.success({
                     total,
@@ -124,7 +120,7 @@ export class PatientService {
                     result,
                 });
             } else {
-                const result = await this.patientRepository.get(
+                const result = await PatientRepository.get(
                     query,
                     {
                         __v: 0,
@@ -147,15 +143,13 @@ export class PatientService {
     public async deleteOne(request: Request, response: Response) {
         try {
             const patientId = new Types.ObjectId(request.params.patientId);
-            const patient = await this.patientRepository.getById(patientId);
+            const patient = await PatientRepository.getById(patientId);
 
             if (!patient) {
                 throw new Error(`Patient not found`);
             }
 
-            const deletedEvent = await this.patientRepository.deleteOne(
-                patientId
-            );
+            const deletedEvent = await PatientRepository.deleteOne(patientId);
 
             response.composer.success(deletedEvent);
         } catch (error) {

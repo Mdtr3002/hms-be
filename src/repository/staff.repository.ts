@@ -1,5 +1,3 @@
-import { injectable } from "inversify";
-import { logger } from "../lib/logger";
 import {
     FilterQuery,
     PopulateOptions,
@@ -13,13 +11,8 @@ import { DoctorModel } from "../entity/staff.model";
 import { NurseModel } from "../entity/staff.model";
 import { CreateStaffDto } from "../lib/dto/staff.dto";
 
-@injectable()
-export class StaffRepository {
-    constructor() {
-        logger.info(`[Staff] Initializing...`);
-    }
-
-    public async create(dto: CreateStaffDto): Promise<StaffDocument> {
+const StaffRepository = {
+    create: async function create(dto: CreateStaffDto): Promise<StaffDocument> {
         const schedule = {
             scheduleStartTime: dto.scheduleStartTime,
             scheduleEndTime: dto.scheduleEndTime,
@@ -54,9 +47,9 @@ export class StaffRepository {
                 schedule,
             });
         }
-    }
+    },
 
-    public async editOne(
+    editOne: async function editOne(
         staffId: Types.ObjectId,
         update: UpdateQuery<StaffDocument>,
         options: QueryOptions<StaffDocument> = {}
@@ -66,9 +59,9 @@ export class StaffRepository {
             { ...update },
             { ...options, new: true }
         );
-    }
+    },
 
-    public async getOne(
+    getOne: async function getOne(
         query: FilterQuery<StaffDocument>,
         projection: ProjectionType<StaffDocument> = {},
         options: QueryOptions<StaffDocument> = {}
@@ -78,17 +71,17 @@ export class StaffRepository {
             projection,
             { ...options, sort: { createdAt: -1 } }
         );
-    }
+    },
 
-    public async getById(
+    getById: async function getById(
         id: Types.ObjectId,
         projection: ProjectionType<StaffDocument> = {},
         options: QueryOptions<StaffDocument> = {}
     ): Promise<StaffDocument | null> {
         return await this.getOne({ _id: id }, projection, options);
-    }
+    },
 
-    public async get(
+    get: async function get(
         query: FilterQuery<StaffDocument>,
         projection: ProjectionType<StaffDocument>,
         options: QueryOptions<StaffDocument>
@@ -98,9 +91,9 @@ export class StaffRepository {
             projection,
             { ...options, sort: { createdAt: -1 } }
         );
-    }
+    },
 
-    public async getPaginated(
+    getPaginated: async function getPaginated(
         query: FilterQuery<StaffDocument>,
         projection: ProjectionType<StaffDocument>,
         populateOptions: PopulateOptions | (string | PopulateOptions)[],
@@ -121,9 +114,9 @@ export class StaffRepository {
                 .limit(pageSize)
                 .populate(populateOptions),
         ]);
-    }
+    },
 
-    public async markAsDeleted(
+    markAsDeleted: async function markAsDeleted(
         staffId: Types.ObjectId,
         options: QueryOptions<StaffDocument> = {}
     ): Promise<StaffDocument | null> {
@@ -132,12 +125,14 @@ export class StaffRepository {
             { deletedAt: Date.now() },
             { ...options, new: true }
         );
-    }
+    },
 
-    public async deleteOne(
+    deleteOne: async function deleteOne(
         staffId: Types.ObjectId,
         options: QueryOptions<StaffDocument> = {}
     ): Promise<StaffDocument | null> {
         return await StaffModel.findOneAndDelete({ _id: staffId }, options);
-    }
-}
+    },
+};
+
+export default StaffRepository;
