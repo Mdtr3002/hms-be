@@ -9,13 +9,13 @@ import { applyHttpResponseComposer } from "./lib/response-composer";
 
 import { StaffService, PatientService } from "./services/index";
 
-import { AdminController } from "./apiHandler/index";
-
 import { RepositoryType } from "./types";
 import mongoose from "mongoose";
 
 import { toNumber } from "lodash";
 import { logger } from "./lib/logger";
+import { AdminPatientController } from "./apiHandler/admin/patient.controller";
+import { AdminStaffController } from "./apiHandler/admin/staff.controller";
 
 logger.info(`Connecting to database at URI: ${process.env.DB_URI}`);
 mongoose.connect(process.env.DB_URI);
@@ -37,13 +37,20 @@ container
 Promise.all([
     // container.get<DatabaseService>(ServiceType.Database).initialize(),
 ]).then(() => {
-    const app = new App(
-        [container.resolve<AdminController>(AdminController)],
-        toNumber(process.env.PORT),
+    const patientService = new App(
+        [container.resolve<AdminPatientController>(AdminPatientController)],
+        toNumber(process.env.PATIENT_PORT),
         [applyHttpResponseComposer]
     );
 
-    app.listen();
+    const staffService = new App(
+        [container.resolve<AdminStaffController>(AdminStaffController)],
+        toNumber(process.env.STAFF_PORT),
+        [applyHttpResponseComposer]
+    );
+
+    patientService.listen();
+    staffService.listen();
 
     if (process.send) {
         process.send("ready");

@@ -45,7 +45,16 @@ export class StaffService {
                 throw new Error("Staff not found");
             }
 
-            const updatePayload = { ...request.body };
+            const updatePayload = {
+                ...request.body,
+                schedule: {
+                    scheduleStartTime: request.body.scheduleStartTime,
+                    scheduleEndTime: request.body.scheduleEndTime,
+                    workDays: request.body.workDays,
+                    scheduleWorkDescription:
+                        request.body.scheduleWorkDescription,
+                },
+            };
 
             const updatedStaff = await StaffRepository.editOne(
                 staffId,
